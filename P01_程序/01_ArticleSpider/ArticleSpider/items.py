@@ -34,7 +34,7 @@ class ArticlespiderItem(scrapy.Item):
 def add_jobbole(value):
     return value+"-bobby"
 
-
+# 日期格式化
 def date_convert(value):
     match_re = re.match(".*?(\d+.*)", value)
     if match_re:
@@ -92,10 +92,8 @@ class ArticleItemLoader(ItemLoader):
 class JobBoleArticleItem(scrapy.Item):
     # 标题
     title = scrapy.Field()
-    # 创建日期
-    create_date = scrapy.Field(
-        input_processor=MapCompose(date_convert)
-    )
+    # 创建日期 并且格式化
+    create_date = scrapy.Field(input_processor=MapCompose(date_convert))
     url = scrapy.Field()
     url_object_id = scrapy.Field()
     # 封面图
@@ -116,6 +114,8 @@ class JobBoleArticleItem(scrapy.Item):
     )
     # 主体
     content = scrapy.Field()
+    # 查看数
+    view_nums = scrapy.Field()
 
     def get_insert_sql(self):
         insert_sql = """

@@ -39,7 +39,7 @@ class JobboleSpider(scrapy.Spider):
 
         # 实例化一个浏览器
         import undetected_chromedriver.v2 as uc
-        chrome_driver = r"E:\Python\chromedriver.exe"
+        chrome_driver = r"E:\Python1\chromedriver.exe"
         # 后面讲解selenium的时候会下载chromedriver.exe
         browser = uc.Chrome(executable_path=chrome_driver)
         browser.get("https://account.cnblogs.com/signin")
@@ -211,10 +211,12 @@ class JobboleSpider(scrapy.Spider):
                     原因：如果写NewsAjax/GetAjaxNewsInfo?contentId=724466则将其作为https://news.cnblogs.com/n/724466子路径
                           如果写/NewsAjax/GetAjaxNewsInfo?contentId=724466则将其加入至https://news.cnblogs.com子域名下
             '''
-            yield Request(url=parse.urljoin(response.url, "/NewsAjax/GetAjaxNewsInfo?contentId={}".format(post_id)),
-                          meta={'article_item': article_item}, callback=self.parse_num)
+            yield article_item
 
-        # 获取新闻详情点赞数、评论数、查看数（初始不存在于原始html中）
+            # yield Request(url=parse.urljoin(response.url, "/NewsAjax/GetAjaxNewsInfo?contentId={}".format(post_id)),
+            #               meta={'article_item': article_item}, callback=self.parse_num)
+
+    # 获取新闻详情点赞数、评论数、查看数（初始不存在于原始html中）
     def parse_num(self, response):
         """
             response.text——'{"ContentID":724466,"CommentCount":0,"TotalView":31,"DiggCount":0,"BuryCount":0}'
@@ -244,91 +246,91 @@ class JobboleSpider(scrapy.Spider):
         yield article_item
 
 
-    #收集伯乐在线所有404的url以及404页面数
-    handle_httpstatus_list = [404]
-
-    def __init__(self, **kwargs):
-        self.fail_urls = []
-        dispatcher.connect(self.handle_spider_closed, signals.spider_closed)
-
-    def handle_spider_closed(self, spider, reason):
-        self.crawler.stats.set_value("failed_urls", ",".join(self.fail_urls))
-
-
-
-    # 解析 列表页中的  所有文章url  并交给scrapy下载后 并进行 解析
-    def parse(self, response):
-        """
-        1. 获取文章列表页中的文章url并交给scrapy下载后并进行解析
-        2. 获取下一页的url并交给scrapy进行下载， 下载完成后交给parse
-        """
-        # 解析列表页中的所有文章url并交给scrapy下载后并进行解析
-        if response.status == 404:
-            self.fail_urls.append(response.url)
-            self.crawler.stats.inc_value("failed_url")
-
-        # 获取css节点                                        [:1]
-        post_nodes = response.css('#news_list .news_block')
-        # 遍历css节点去除所有图片url
-        for post_node in post_nodes:
-            image_url = post_node.css('.entry_summary a img::attr(src)').extract_first("")
-            if image_url.startswith("//"):
-                image_url = "https:" + image_url
-                # extract_first()   方法只能返回第一个值，如果没有值，则返回None
-                # extract()         方法可以返回所有值，如果没有值，则返回一个空列表
-            post_url = post_node.css('h2 a::attr(href)').extract_first("")
-
-            # yield 是用来提交给scrapy的，这里是提交给scrapy下载后并进行解析
-            # urljoin() 方法用于拼接两个或多个字符串，返回一个新的字符串。
-            yield Request(url=parse.urljoin(response.url, post_url), meta={"front_image_url": image_url},
-                          callback=self.parse_detail)
-            break
-
-            # 提取下一页并交给scrapy进行下载 , 如果是下一页的就获取下一页的url(href中的)并交给scrapy进行下载
-            # next_url = response.xpath("//a[contains(text(), 'Next >')]/@href").extract_first("")
-            # if next_url:
-            #     yield Request(url=parse.urljoin(response.url, next_url), callback=self.parse)
-
-    # 解析详情页面
-    def parse_detail(self, response):
-        match_re = re.match(".*?(\d+.*)", response.url)  # 获取utl中的数字（就是这个网页访问的查询id）
-        if match_re:
-            item_loader = ArticleItemLoader(item=JobBoleArticleItem(), response=response)
-            item_loader.add_css("title", "#news_title a::text")
-            item_loader.add_css("create_date", "#news_info .time::text")
-            item_loader.add_css("content", "#news_content")
-            item_loader.add_css("tags", ".news_tags a::text")
-            item_loader.add_value("url", response.url)
-            # 如果图片路径没有值，则返回空
-            if response.meta.get("front_image_url", []):
-                item_loader.add_value("front_image_url", response.meta.get("front_image_url", []))
-
-        yield Request(url=parse.urljoin(response.url, "/NewsAjax/GetAjaxNewsInfo?contentId={}".format(post_id)),
-                      meta={"article_item": item_loader, "url": response.url}, callback=self.parse_nums)
-
-    # 回调 接口 返回 获取评论数喜欢数等
-    def parse_nums(self, response):
-        j_data = json.loads(response.text)
-        item_loader = response.meta.get("article_item", "")
-
-        praise_nums = j_data["DiggCount"]
-        fav_nums = j_data["TotalView"]
-        comment_nums = j_data["CommentCount"]
-
-        item_loader.add_value("praise_nums", j_data["DiggCount"])
-        item_loader.add_value("fav_nums", j_data["TotalView"])
-        item_loader.add_value("comment_nums", j_data["CommentCount"])
-        item_loader.add_value("url_object_id", get_md5(response.meta.get("url", "")))
-        '''
-        article_item["praise_nums"] = praise_nums
-        article_item["fav_nums"] = fav_nums
-        article_item["comment_nums"] = comment_nums
-        article_item["url_object_id"] = common.get_md5(article_item["url"])
-        '''
-
-        article_item = item_loader.load_item()
-
-        yield article_item
+    # #收集伯乐在线所有404的url以及404页面数
+    # handle_httpstatus_list = [404]
+    #
+    # def __init__(self, **kwargs):
+    #     self.fail_urls = []
+    #     dispatcher.connect(self.handle_spider_closed, signals.spider_closed)
+    #
+    # def handle_spider_closed(self, spider, reason):
+    #     self.crawler.stats.set_value("failed_urls", ",".join(self.fail_urls))
+    #
+    #
+    #
+    # # 解析 列表页中的  所有文章url  并交给scrapy下载后 并进行 解析
+    # def parse(self, response):
+    #     """
+    #     1. 获取文章列表页中的文章url并交给scrapy下载后并进行解析
+    #     2. 获取下一页的url并交给scrapy进行下载， 下载完成后交给parse
+    #     """
+    #     # 解析列表页中的所有文章url并交给scrapy下载后并进行解析
+    #     if response.status == 404:
+    #         self.fail_urls.append(response.url)
+    #         self.crawler.stats.inc_value("failed_url")
+    #
+    #     # 获取css节点                                        [:1]
+    #     post_nodes = response.css('#news_list .news_block')
+    #     # 遍历css节点去除所有图片url
+    #     for post_node in post_nodes:
+    #         image_url = post_node.css('.entry_summary a img::attr(src)').extract_first("")
+    #         if image_url.startswith("//"):
+    #             image_url = "https:" + image_url
+    #             # extract_first()   方法只能返回第一个值，如果没有值，则返回None
+    #             # extract()         方法可以返回所有值，如果没有值，则返回一个空列表
+    #         post_url = post_node.css('h2 a::attr(href)').extract_first("")
+    #
+    #         # yield 是用来提交给scrapy的，这里是提交给scrapy下载后并进行解析
+    #         # urljoin() 方法用于拼接两个或多个字符串，返回一个新的字符串。
+    #         yield Request(url=parse.urljoin(response.url, post_url), meta={"front_image_url": image_url},
+    #                       callback=self.parse_detail)
+    #         break
+    #
+    #         # 提取下一页并交给scrapy进行下载 , 如果是下一页的就获取下一页的url(href中的)并交给scrapy进行下载
+    #         # next_url = response.xpath("//a[contains(text(), 'Next >')]/@href").extract_first("")
+    #         # if next_url:
+    #         #     yield Request(url=parse.urljoin(response.url, next_url), callback=self.parse)
+    #
+    # # 解析详情页面
+    # def parse_detail(self, response):
+    #     match_re = re.match(".*?(\d+.*)", response.url)  # 获取utl中的数字（就是这个网页访问的查询id）
+    #     if match_re:
+    #         item_loader = ArticleItemLoader(item=JobBoleArticleItem(), response=response)
+    #         item_loader.add_css("title", "#news_title a::text")
+    #         item_loader.add_css("create_date", "#news_info .time::text")
+    #         item_loader.add_css("content", "#news_content")
+    #         item_loader.add_css("tags", ".news_tags a::text")
+    #         item_loader.add_value("url", response.url)
+    #         # 如果图片路径没有值，则返回空
+    #         if response.meta.get("front_image_url", []):
+    #             item_loader.add_value("front_image_url", response.meta.get("front_image_url", []))
+    #
+    #     yield Request(url=parse.urljoin(response.url, "/NewsAjax/GetAjaxNewsInfo?contentId={}".format(post_id)),
+    #                   meta={"article_item": item_loader, "url": response.url}, callback=self.parse_nums)
+    #
+    # # 回调 接口 返回 获取评论数喜欢数等
+    # def parse_nums(self, response):
+    #     j_data = json.loads(response.text)
+    #     item_loader = response.meta.get("article_item", "")
+    #
+    #     praise_nums = j_data["DiggCount"]
+    #     fav_nums = j_data["TotalView"]
+    #     comment_nums = j_data["CommentCount"]
+    #
+    #     item_loader.add_value("praise_nums", j_data["DiggCount"])
+    #     item_loader.add_value("fav_nums", j_data["TotalView"])
+    #     item_loader.add_value("comment_nums", j_data["CommentCount"])
+    #     item_loader.add_value("url_object_id", get_md5(response.meta.get("url", "")))
+    #     '''
+    #     article_item["praise_nums"] = praise_nums
+    #     article_item["fav_nums"] = fav_nums
+    #     article_item["comment_nums"] = comment_nums
+    #     article_item["url_object_id"] = common.get_md5(article_item["url"])
+    #     '''
+    #
+    #     article_item = item_loader.load_item()
+    #
+    #     yield article_item
 
 
 
