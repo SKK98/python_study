@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import xlwt
 
-#请求网页
+#请求网页 test
 def request_douban(url):
     headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
