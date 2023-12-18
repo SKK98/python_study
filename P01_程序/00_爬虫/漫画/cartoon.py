@@ -6,6 +6,9 @@ from contextlib import closing
 from tqdm import tqdm
 import time
 
+# https://mp.weixin.qq.com/s/wyS-OP04K3Vs9arSelRlyA
+
+
 # 创建保存目录
 save_dir = '妖神记'
 if save_dir not in os.listdir('./'):  # 如果没有这个目录，就创建
@@ -59,15 +62,15 @@ for i, url in enumerate(tqdm(chapter_urls)):
             url = 'https://images.dmzj.com/img/chapterpic/' + chapterpic_qian + '/' + chapterpic_hou + '/' + pic[:-1] + '.jpg'
         else:
             url = 'https://images.dmzj.com/img/chapterpic/' + chapterpic_qian + '/' + chapterpic_hou + '/' + pic + '.jpg'
-        pic_name = '%03d.jpg' % (idx + 1)
-        pic_save_path = os.path.join(chapter_save_dir, pic_name)
-        with closing(requests.get(url, headers=download_header, stream=True)) as response:
-            chunk_size = 1024
-            content_size = int(response.headers['content-length'])
-            if response.status_code == 200:
-                with open(pic_save_path, "wb") as file:
-                    for data in response.iter_content(chunk_size=chunk_size):
-                        file.write(data)
+        pic_name = '%03d.jpg' % (idx + 1)                               # 图片名
+        pic_save_path = os.path.join(chapter_save_dir, pic_name)        # 图片保存路径
+        with closing(requests.get(url, headers=download_header, stream=True)) as response:  # stream=True 以流的形式下载
+            chunk_size = 1024                                                                   # 单次请求最大值
+            content_size = int(response.headers['content-length'])                              # 内容体总大小
+            if response.status_code == 200:                                                     # 状态码为200，表示链接正常
+                with open(pic_save_path, "wb") as file:                                         # 显示进度条
+                    for data in response.iter_content(chunk_size=chunk_size):                       # iter_content() 方法可以实现边下载边存储
+                        file.write(data)                                                                # 写入文件
             else:
                 print('链接异常')
     time.sleep(10)

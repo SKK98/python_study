@@ -5,7 +5,8 @@ from fake_useragent import UserAgent
 import threading
 
 # 定义百度贴吧的url
-url = 'https://tieba.baidu.com/f?kw=V&ie=utf-8&pn='
+# url = 'https://tieba.baidu.com/f?kw=V&ie=utf-8&pn='                    # V吧
+url = 'https://tieba.baidu.com/f?kw=%CB%EF%D0%A6%B4%A8&ie=utf-8&pn='     # 孙笑川吧
 # 生成随机的User-Agent
 ua = UserAgent()
 # 定义请求头
